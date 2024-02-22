@@ -18,6 +18,7 @@ import {
 } from '../../themes/constants/colors.js';
 import { hexColorToRGB } from '../../util/hexColorToRGB';
 import { getPrimaryColor } from '../../state/selectors/primaryColor';
+import { SessionGifSearchInput } from '../SessionGifSearchInput';
 
 export const StyledGifPanel = styled.div<{
   isModal: boolean;
@@ -225,6 +226,36 @@ const GifGrid = ({selectGif}:{
 }) => {
   const [gifs, setGifs] = React.useState<Array<Gif>>();
 
+  const searchForGifs = async (searchTerm: string) => {
+    window.log.debug('searching for gifs with term:', searchTerm);
+    const res = await fetch(
+      `https://api.giphy.com/v1/gifs/search?rating=pg-13&offset=0&limit=10&q=${searchTerm}&api_key=sVKZ6OEY9WWBuCQnTYRhc2M6BoMMOvss&pingback_id=18dcdd3b1357ff91`
+    );
+
+    const body = (await res.json()) as GiphyBody;
+
+    const newGifs = body.data.map((gif: GiphyGif) => getGif(gif.images.original_mp4.mp4));
+
+    const awaitedGifs = await Promise.allSettled(newGifs);
+
+    const gotGifs: Array<Gif> = [];
+
+    awaitedGifs.forEach((gif, index) => {
+      if (gif.status === 'fulfilled') {
+        gotGifs.push({
+          url: gif.value.url,
+          height: body.data[index].images.original_mp4.height,
+          width: body.data[index].images.original_mp4.width,
+          arrayBuffer: gif.value.arrayBuffer,
+        });
+      } else {
+        window.log.error(gif.reason);
+      }
+    });
+
+    setGifs(gotGifs);
+  }
+
   React.useEffect(() => {
     const getTrendingGifs = async () => {
       const res = await fetch(
@@ -257,6 +288,8 @@ const GifGrid = ({selectGif}:{
     getTrendingGifs();
   }, []);
   return (
+    <div>
+
     <StyledGifGrid>
       {gifs &&
         gifs?.map((gif: any) => {
@@ -264,6 +297,8 @@ const GifGrid = ({selectGif}:{
           return <Gif key={url} url={url} height={height} width={width} selectGif={selectGif} arrayBuffer={arrayBuffer} />;
         })}
     </StyledGifGrid>
+        <SessionGifSearchInput search={searchForGifs} />
+        </div>
   );
 };
 
