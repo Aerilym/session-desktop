@@ -70,6 +70,27 @@ export const ToggleEmojiButton = React.forwardRef<HTMLDivElement, { onClick: Noo
   }
 );
 
+// eslint-disable-next-line react/display-name
+export const ToggleGifButton = React.forwardRef<HTMLDivElement, { onClick: Noop }>(
+  (props, ref) => {
+    return (
+      <StyledChatButtonContainer>
+        <SessionIconButton
+          iconType="gif"
+          ref={ref}
+          backgroundColor={'var(--chat-buttons-background-color)'}
+          iconColor={'var(--chat-buttons-icon-color)'}
+          iconSize={'huge2'}
+          borderRadius="300px"
+          iconPadding="6px"
+          onClick={props.onClick}
+          dataTestId="gif-button"
+        />
+      </StyledChatButtonContainer>
+    );
+  }
+);
+
 export const SendMessageButton = (props: { onClick: Noop }) => {
   return (
     <StyledChatButtonContainer className="send-message-button">

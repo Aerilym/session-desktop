@@ -54,6 +54,7 @@ import {
   SendMessageButton,
   StartRecordingButton,
   ToggleEmojiButton,
+  ToggleGifButton,
 } from './CompositionButtons';
 import { renderEmojiQuickResultRow, searchEmojiForQuery } from './EmojiQuickResult';
 import {
@@ -62,6 +63,7 @@ import {
   renderUserMentionRow,
   styleForCompositionBoxSuggestions,
 } from './UserMentions';
+import { SessionGifPanel, StyledGifPanel } from '../SessionGifPanel';
 
 export interface ReplyingToMessageProps {
   convoId: string;
@@ -116,6 +118,7 @@ interface State {
   showRecordingView: boolean;
   draft: string;
   showEmojiPanel: boolean;
+  showGifPanel: boolean;
   ignoredLink?: string; // set the ignored url when users closed the link preview
   stagedLinkPreview?: StagedLinkPreviewData;
   showCaptionEditor?: AttachmentType;
@@ -150,6 +153,7 @@ const getDefaultState = (newConvoId?: string) => {
     draft: getDraftForConversation(newConvoId),
     showRecordingView: false,
     showEmojiPanel: false,
+    showGifPanel: false,
     ignoredLink: undefined,
     stagedLinkPreview: undefined,
     showCaptionEditor: undefined,
@@ -221,6 +225,14 @@ const StyledEmojiPanelContainer = styled.div<{ dir?: HTMLDirection }>`
   }
 `;
 
+const StyledGifPanelContainer = styled.div<{ dir?: HTMLDirection }>`
+  ${StyledGifPanel} {
+    position: absolute;
+    bottom: 68px;
+    ${props => (props.dir === 'rtl' ? 'left: 0px' : 'right: 0px;')}
+  }
+`;
+
 const StyledSendMessageInput = styled.div<{ dir?: HTMLDirection }>`
   position: relative;
   cursor: text;
@@ -272,7 +284,9 @@ class CompositionBoxInner extends React.Component<Props, State> {
   private readonly textarea: React.RefObject<any>;
   private readonly fileInput: React.RefObject<HTMLInputElement>;
   private readonly emojiPanel: React.RefObject<HTMLDivElement>;
+  private readonly gifPanel: React.RefObject<HTMLDivElement>;
   private readonly emojiPanelButton: any;
+  private readonly gifPanelButton: any;
   private linkPreviewAbortController?: AbortController;
   private container: HTMLDivElement | null;
   private lastBumpTypingMessageLength: number = 0;
@@ -287,7 +301,9 @@ class CompositionBoxInner extends React.Component<Props, State> {
     this.container = null;
     // Emojis
     this.emojiPanel = React.createRef();
+    this.gifPanel = React.createRef();
     this.emojiPanelButton = React.createRef();
+    this.gifPanelButton = React.createRef();
     autoBind(this);
     this.toggleEmojiPanel = debounce(this.toggleEmojiPanel.bind(this), 100);
   }
@@ -398,11 +414,35 @@ class CompositionBoxInner extends React.Component<Props, State> {
     });
   }
 
+  private showGifPanel() {
+    document.addEventListener('mousedown', this.handleClick, false);
+
+    this.setState({
+      showGifPanel: true,
+    });
+  }
+
+  private hideGifPanel() {
+    document.removeEventListener('mousedown', this.handleClick, false);
+
+    this.setState({
+      showGifPanel: false,
+    });
+  }
+
   private toggleEmojiPanel() {
     if (this.state.showEmojiPanel) {
       this.hideEmojiPanel();
     } else {
       this.showEmojiPanel();
+    }
+  }
+
+  private toggleGifPanel() {
+    if (this.state.showGifPanel) {
+      this.hideGifPanel();
+    } else {
+      this.showGifPanel();
     }
   }
 
@@ -418,7 +458,7 @@ class CompositionBoxInner extends React.Component<Props, State> {
   }
 
   private renderCompositionView() {
-    const { showEmojiPanel } = this.state;
+    const { showEmojiPanel, showGifPanel } = this.state;
     const { typingEnabled } = this.props;
     /* eslint-disable @typescript-eslint/no-misused-promises */
 
@@ -454,6 +494,9 @@ class CompositionBoxInner extends React.Component<Props, State> {
         {typingEnabled && (
           <ToggleEmojiButton ref={this.emojiPanelButton} onClick={this.toggleEmojiPanel} />
         )}
+        {typingEnabled && (
+          <ToggleGifButton ref={this.gifPanelButton} onClick={this.toggleGifPanel} />
+        )}
         {typingEnabled && <SendMessageButton onClick={this.onSendMessage} />}
         {typingEnabled && showEmojiPanel && (
           <StyledEmojiPanelContainer role="button" dir={this.props.htmlDirection}>
@@ -464,6 +507,16 @@ class CompositionBoxInner extends React.Component<Props, State> {
               onKeyDown={this.onKeyDown}
             />
           </StyledEmojiPanelContainer>
+        )}
+        {typingEnabled && showGifPanel && (
+          <StyledGifPanelContainer role="button" dir={this.props.htmlDirection}>
+            <SessionGifPanel
+              ref={this.gifPanel}
+              show={showGifPanel}
+              onChoseAttachments={this.props.onChoseAttachments}
+              onKeyDown={this.onKeyDown}
+            />
+          </StyledGifPanelContainer>
         )}
       </Flex>
     );
